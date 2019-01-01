@@ -1,9 +1,10 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include <sci/Manager.hpp>
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
+#include <sci/Manager.hpp>
+#include <sci/Shader.hpp>
 
 struct WindowData
 {
@@ -39,9 +40,6 @@ protected:
     void initialize_open_gl();
     void terminate_open_gl();
 
-    void create_shader_vertex();
-    void create_shader_fragment();
-    void create_shader_program();
     void create_render_data();
 
     void clean_up();
@@ -51,11 +49,9 @@ private:
     SDL_Window* m_window;
     SDL_GLContext m_gl_context;
 
-    // tmp
-    unsigned int m_shader_vertex_id;
-    unsigned int m_shader_fragment_id;
-    unsigned int m_shader_program_id;
+    Shader* m_default_shader;
 
+    // tmp
     unsigned int m_buffer_object_vertex;
     unsigned int m_buffer_object_indices;
     unsigned int m_vertex_array_object;
