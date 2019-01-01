@@ -7,6 +7,8 @@
 #include <sci/Logger.hpp>
 #include <sci/Timer.hpp>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 Renderer::Renderer(Application& application)
     : Manager(application)
     , m_window(nullptr)
@@ -20,12 +22,13 @@ Renderer::~Renderer()
 void Renderer::set_gl_viewport(const glm::uvec2 & min, const glm::uvec2& max)
 {
     glViewport(min.x, min.y, max.x, max.y);
+    projection = glm::perspective(glm::radians(60.0f), (float)max.x / (float)max.y, 0.1f, 1000.0f);
 }
 
 void Renderer::clear()
 {
     glClearColor(0.66f, 0.66f, 0.66f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Renderer::swap_buffers()
@@ -33,11 +36,30 @@ void Renderer::swap_buffers()
     SDL_GL_SwapWindow(m_window);
 }
 
+#include <sci/Timer.hpp>
+#include <sci/Application.hpp>
 void Renderer::render()
 {
+    /////////
+    timer += get_application().get_manager<Timer>().get_delta_time();
+    float radius = 10.0f;
+    float camX = sin(timer) * radius;
+    float camY = sin(timer) * 5.0f;
+    float camZ = cos(timer) * radius;
+    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+    /////////
+
     m_default_shader->use();
-    glBindVertexArray(m_vertex_array_object);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for (const auto& go : m_game_objects) {
+        const MeshRender* mr = go->get_component<MeshRender>();
+        Transform* tf = go->get_component<Transform>();
+
+        m_default_shader->set_mat4("transform", projection * view * tf->get_matrix());
+        m_default_shader->set_vec4("color", mr->color);
+
+        glBindVertexArray(mr->m_vertex_array_object);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    }
 }
 
 void Renderer::on_initialize()
@@ -48,12 +70,23 @@ void Renderer::on_initialize()
     set_gl_viewport(glm::uvec2(0, 0), glm::uvec2(m_window_data.width, m_window_data.height));
 
     m_default_shader = new Shader(g_default_vertex_shader_source, g_default_fragment_shader_source);
-    create_render_data();
+
+
+    for (const auto& map_entry : cube_helper.data) {
+        auto go = new GameObject();
+        const auto& data = map_entry.second;
+
+        go->get_component<MeshRender>()->color = data.color;
+        go->get_component<Transform>()->set_position(data.position);
+        go->get_component<Transform>()->set_rotation(data.rotation);
+        go->get_component<Transform>()->set_scale(data.scale);
+
+        m_game_objects.push_back(go);
+    }
 }
 
 void Renderer::on_terminate()
 {
-    clean_up();
     terminate_open_gl();
     terminate_sdl();
 }
@@ -84,50 +117,10 @@ void Renderer::initialize_open_gl()
 
     SDL_GL_SetSwapInterval(m_window_data.vertical_synchronization);
 
-    //glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
-    //glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::terminate_open_gl()
 {
     SDL_GL_DeleteContext(m_gl_context);
-}
-
-void Renderer::create_render_data()
-{
-    const unsigned int vertices_size = 9;
-    const float vertices[vertices_size] = {
-        -0.5f, -0.25f, 0.0f,
-        0.0f, 0.75f, 0.0f,
-        0.5f, -0.25f, 0.0f,
-    };
-
-    const unsigned int indices_size = 3;
-    const unsigned int indices[indices_size] = {
-        0, 1, 2,
-    };
-
-    glGenVertexArrays(1, &m_vertex_array_object);
-    glBindVertexArray(m_vertex_array_object);
-
-    glGenBuffers(1, &m_buffer_object_vertex);
-    glBindBuffer(GL_ARRAY_BUFFER, m_buffer_object_vertex);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices_size, vertices, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &m_buffer_object_indices);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buffer_object_indices);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices_size, indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-}
-
-void Renderer::clean_up()
-{
-    glDeleteVertexArrays(1, &m_vertex_array_object);
-    glDeleteBuffers(1, &m_buffer_object_vertex);
-    glDeleteBuffers(1, &m_buffer_object_indices);
 }

@@ -6,6 +6,10 @@
 #include <sci/Manager.hpp>
 #include <sci/Shader.hpp>
 
+#include <vector>
+#include <map>
+#include <sci/GameObject.hpp>
+
 struct WindowData
 {
     const char* title = "SCI GE";
@@ -40,21 +44,42 @@ protected:
     void initialize_open_gl();
     void terminate_open_gl();
 
-    void create_render_data();
-
-    void clean_up();
-
 private:
     WindowData m_window_data;
     SDL_Window* m_window;
     SDL_GLContext m_gl_context;
 
+    //////
+    float timer = 0.0f;
+    glm::mat4x4 projection;
+    glm::mat4x4 view;
+    //////
+
     Shader* m_default_shader;
 
-    // tmp
-    unsigned int m_buffer_object_vertex;
-    unsigned int m_buffer_object_indices;
-    unsigned int m_vertex_array_object;
+    struct cube {
+
+        struct data {
+            glm::vec4 color;
+            glm::vec3 position;
+            glm::vec3 rotation;
+            glm::vec3 scale = glm::vec3(1.0f);
+        };
+
+        enum side {
+            TOP,
+            BOTTOM,
+            LEFT,
+            RIGHT,
+            FORWARD,
+            BACK,
+        };
+
+        const std::map<side, data> data {
+        };
+    } cube_helper;
+
+    std::vector<GameObject*> m_game_objects;
 };
 
 #endif // !RENDERER_HPP

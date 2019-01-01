@@ -1,6 +1,15 @@
 #ifndef ENUMS_HPP
 #define ENUMS_HPP
 
+namespace ComponentType
+{
+    enum Enum {
+        Transform = 0,
+        MeshRender,
+        __MAX,
+    };
+}
+
 namespace ManagerType
 {
     enum Enum {
@@ -12,7 +21,8 @@ namespace ManagerType
     };
 };
 
-namespace MainLoopStatus {
+namespace MainLoopStatus
+{
     enum Enum {
         SUCCESS = 0,
         CLOSE,
