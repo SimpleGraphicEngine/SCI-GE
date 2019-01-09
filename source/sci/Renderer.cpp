@@ -7,11 +7,11 @@
 #include <sci/Logger.hpp>
 #include <sci/Timer.hpp>
 
-#include <glm/gtc/matrix_transform.hpp>
-
 Renderer::Renderer(Application& application)
     : Manager(application)
     , m_window(nullptr)
+    , m_default_shader(nullptr)
+    , m_camera_component(nullptr)
 {
 }
 
@@ -21,8 +21,10 @@ Renderer::~Renderer()
 
 void Renderer::set_gl_viewport(const glm::uvec2 & min, const glm::uvec2& max)
 {
+    if (nullptr != m_camera_component) {
+        m_camera_component->calculate_matrix_projection((float)max.x / (float)max.y);
+    }
     glViewport(min.x, min.y, max.x, max.y);
-    projection = glm::perspective(glm::radians(60.0f), (float)max.x / (float)max.y, 0.1f, 1000.0f);
 }
 
 void Renderer::clear()
@@ -38,23 +40,26 @@ void Renderer::swap_buffers()
 
 #include <sci/Timer.hpp>
 #include <sci/Application.hpp>
+
+void Renderer::on_event(const SDL_Event & event, float deltaTime)
+{
+    float pos_speed = 3.5f * deltaTime;
+    float rot_speed = 150.0f * deltaTime;
+    Transform* tf = m_camera.get_component<Transform>();
+
+}
+
 void Renderer::render()
 {
-    /////////
-    timer += get_application().get_manager<Timer>().get_delta_time();
-    float radius = 10.0f;
-    float camX = sin(timer) * radius;
-    float camY = sin(timer) * 5.0f;
-    float camZ = cos(timer) * radius;
-    view = glm::lookAt(glm::vec3(camX, camY, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-    /////////
+    m_camera_component->calculate_matrix_view();
 
     m_default_shader->use();
     for (const auto& go : m_game_objects) {
         const MeshRender* mr = go->get_component<MeshRender>();
         Transform* tf = go->get_component<Transform>();
 
-        m_default_shader->set_mat4("transform", projection * view * tf->get_matrix());
+        auto tmp = m_camera_component->get_matrix_projection() * m_camera_component->get_matrix_view() * tf->get_matrix();
+        m_default_shader->set_mat4("transform", tmp);
         m_default_shader->set_vec4("color", mr->color);
 
         glBindVertexArray(mr->m_vertex_array_object);
@@ -71,15 +76,25 @@ void Renderer::on_initialize()
 
     m_default_shader = new Shader(g_default_vertex_shader_source, g_default_fragment_shader_source);
 
+    ///////
+    m_camera_component = m_camera.add_component<Camera>();
+    m_camera_component->calculate_matrix_projection((float)m_window_data.width / (float)m_window_data.height);
+    auto trans = m_camera.get_component<Transform>();
+    trans->set_position(glm::vec3(0.0f, 2.0f, 10.0f));
+    trans->set_rotation(glm::vec3(0.0f, -90.0f, 90.0f));
+    ///////
 
     for (const auto& map_entry : cube_helper.data) {
-        auto go = new GameObject();
         const auto& data = map_entry.second;
 
-        go->get_component<MeshRender>()->color = data.color;
-        go->get_component<Transform>()->set_position(data.position);
-        go->get_component<Transform>()->set_rotation(data.rotation);
-        go->get_component<Transform>()->set_scale(data.scale);
+        auto go = new GameObject();
+        auto mr = go->add_component<MeshRender>();
+        mr->color = data.color;
+
+        auto transform = go->get_component<Transform>();
+        transform->set_position(data.position);
+        transform->set_rotation(data.rotation);
+        transform->set_scale(data.scale);
 
         m_game_objects.push_back(go);
     }

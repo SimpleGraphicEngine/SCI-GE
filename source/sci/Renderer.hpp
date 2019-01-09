@@ -10,6 +10,8 @@
 #include <map>
 #include <sci/GameObject.hpp>
 
+#include <sci/Components/Camera.hpp>
+
 struct WindowData
 {
     const char* title = "SCI GE";
@@ -32,6 +34,7 @@ public:
     void clear();
     void swap_buffers();
 
+    void on_event(const SDL_Event& event, float deltaTime);
     void render();
 
 protected:
@@ -49,13 +52,10 @@ private:
     SDL_Window* m_window;
     SDL_GLContext m_gl_context;
 
-    //////
-    float timer = 0.0f;
-    glm::mat4x4 projection;
-    glm::mat4x4 view;
-    //////
-
     Shader* m_default_shader;
+
+    GameObject m_camera;
+    Camera* m_camera_component;
 
     struct cube {
 
@@ -76,6 +76,24 @@ private:
         };
 
         const std::map<side, data> data {
+            {
+                side::TOP, {glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(90.0f, 0.0f, 0.0f)}
+            },
+            {
+                side::BOTTOM, {glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(90.0f, 0.0f, 0.0f)}
+            },
+            {
+                side::LEFT, {glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 90.0f, 0.0f)}
+            },
+            {
+                side::RIGHT, {glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 90.0f, 0.0f)}
+            },
+            {
+                side::FORWARD, {glm::vec4(0.0f, 1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.5f)}
+            },
+            {
+                side::BACK, {glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, -0.5f)}
+            },
         };
     } cube_helper;
 

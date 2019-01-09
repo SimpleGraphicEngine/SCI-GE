@@ -28,10 +28,12 @@ Application::~Application()
 MainLoopStatus::Enum Application::main_loop()
 {
     auto& renderer = get_manager<Renderer>();
+    auto& timer = get_manager<Timer>();
     while (MainLoopStatus::SUCCESS == m_status) {
-
+        float deltaTime = timer.get_delta_time();
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
+            renderer.on_event(event, deltaTime);
 
             switch (event.type) {
             case SDL_QUIT:

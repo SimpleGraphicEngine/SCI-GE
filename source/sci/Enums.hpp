@@ -6,6 +6,7 @@ namespace ComponentType
     enum Enum {
         Transform = 0,
         MeshRender,
+        Camera,
         __MAX,
     };
 }
